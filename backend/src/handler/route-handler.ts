@@ -2,14 +2,7 @@ import { Request, Response, NextFunction } from "express"
 import multer from 'multer'
 import path from 'path'
 import * as CONSTANTS from '../config/constants'
-import { v2 as cloudinary } from 'cloudinary';
-
-cloudinary.config({
-  cloud_name: process.env.CLOUD_NAME,
-  api_key: process.env.API_KEY,
-  api_secret: process.env.API_SECRET,
-});
-
+import cloudinary from '../config/cloudinary'
 const storage = multer.diskStorage({
   filename: function (req: Request, file, cb) {
     var datetimestamp = Date.now();
@@ -59,34 +52,33 @@ class RouteHandler {
 
 
       upload(request, response, err => {
-        if (err) {
-          console.log(err)
-          return response.json({ success: false, err })
-        }
-        console.log(request.file)
+        if (err) return response.status(CONSTANTS.SERVER_ERROR_HTTP_CODE).json({
+          error: true,
+          message: CONSTANTS.SERVER_ERROR_MESSAGE,
+        });
+
         if (request.file) {
           cloudinary.uploader.upload(request.file.path, (error, result) => {
-            if (error) {
-              console.error(error);
-            } else {
-              if (result) {
-                return response.status(CONSTANTS.SERVER_OK_HTTP_CODE).json({
-                  error: false,
-                  message: "successful",
-                  data: result.url,
-                });
-              }
-            }
+            if (error)
+              return response.status(CONSTANTS.SERVER_ERROR_HTTP_CODE).json({
+                error: true,
+                message: CONSTANTS.SERVER_ERROR_MESSAGE,
+              });
+
+            if (result)
+              return response.status(CONSTANTS.SERVER_OK_HTTP_CODE).json({
+                error: false,
+                message: "successful",
+                data: result.url,
+              });
+
           })
 
         }
 
-
-
       })
-
     } catch (error) {
-      console.log(error)
+
       response.status(CONSTANTS.SERVER_ERROR_HTTP_CODE).json({
         error: true,
         message: CONSTANTS.SERVER_ERROR_MESSAGE,
